@@ -6,6 +6,7 @@ from torchvision import transforms
 transform_pipeline = transforms.Compose([
     transforms.Resize((256, 256)),
     transforms.ColorJitter(brightness=0.3, contrast=0.2, saturation=0.2),
+    transforms.RandomRotation(10),
     transforms.CenterCrop(224),
     transforms.ToTensor(),
 ])
