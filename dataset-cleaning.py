@@ -1,7 +1,10 @@
 import os
 import shutil
 from PIL import Image
+import cv2
 from torchvision import transforms
+
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
 # Define the simplified transform pipeline
 transform_pipeline = transforms.Compose([
@@ -51,11 +54,35 @@ def process_expression(expression_path, processed_path):
             process_image(img_path, processed_path, img_name)
 
 
+def detect_and_crop_face(img_cv):
+    gray = cv2.cvtColor(img_cv, cv2.COLOR_BGR2GRAY)
+    # Detect faces in the image
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30),
+                                          flags=cv2.CASCADE_SCALE_IMAGE)
+    # If no faces are detected, return None
+    if len(faces) == 0:
+        return None
+    faces = sorted(faces, key=lambda x: x[2] * x[3], reverse=True)  # Sort by area (w * h)
+    x, y, w, h = faces[0]  # Choose the largest face
+    # Crop the face from the image
+    face_crop = img_cv[y:y + h, x:x + w]
+    return face_crop
+
+
 def process_image(img_path, processed_path, img_name):
-    img = Image.open(img_path).convert('RGB')
-    img_transformed = transform_pipeline(img)
-    img_processed = transforms.ToPILImage()(img_transformed)
-    img_processed.save(os.path.join(processed_path, img_name))
+    img_cv = cv2.imread(img_path)
+    # Use the detect_and_crop_face function to get the cropped face image
+    face_crop_cv = detect_and_crop_face(img_cv)
+    # If a face was detected and cropped
+    if face_crop_cv is not None:
+        # Convert the cropped face to PIL Image
+        face_crop_pil = Image.fromarray(cv2.cvtColor(face_crop_cv, cv2.COLOR_BGR2RGB))
+
+        img_transformed = transform_pipeline(face_crop_pil)
+        img_processed = transforms.ToPILImage()(img_transformed)
+        img_processed.save(os.path.join(processed_path, img_name))
+    else:
+        print(f"No face detected in {img_name}, skipped.")
 
 
 expressions = ['Happy', 'Neutral', 'Suprised', 'Focused']
