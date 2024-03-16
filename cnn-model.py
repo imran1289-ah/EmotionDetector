@@ -6,7 +6,7 @@ import torchvision.datasets
 
 class CNN(nn.Module):
     def __init__(self):
-        super().__init__()
+        super(CNN, self).__init__()
         self.convolutional_layer = nn.Sequential(
             #First layer
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
