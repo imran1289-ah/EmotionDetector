@@ -11,7 +11,7 @@ class CNN(nn.Module):
             #First layer
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
-            nn.MaxPool2d(kernel_size = 2, stride = 2),
+            
             
 
             #Second layer
@@ -24,8 +24,11 @@ class CNN(nn.Module):
 
         self.fullyconnected_layer = nn.Sequential(
             #Fully connected layer
+            nn.Dropout(p=0.1),
+            nn.Flatten()
             nn.Linear(32*64*64,64),
             nn.ReLU(inplace=True),
+            nn.Dropout(p=0.1),
             nn.Linear(64, 4)
         )
 
