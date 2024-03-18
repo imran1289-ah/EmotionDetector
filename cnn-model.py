@@ -25,7 +25,7 @@ class CNN(nn.Module):
         self.fullyconnected_layer = nn.Sequential(
             #Fully connected layer
             nn.Dropout(p=0.1),
-            nn.Flatten()
+            nn.Flatten(),
             nn.Linear(32*64*64,64),
             nn.ReLU(inplace=True),
             nn.Dropout(p=0.1),
