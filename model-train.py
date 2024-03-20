@@ -64,7 +64,7 @@ for epoch in range(num_epochs):
         displayedLoss = loss.item()
         displayedAccuracy = (correct/total)*100
 
-        print('Epoch {displayedEpoch}, Step {displayedStep}, Loss {displayedLoss}, Accuracy {displayedAccuracy}')
+        print(f'Epoch {displayedEpoch}, Step {displayedStep}, Loss {displayedLoss}, Accuracy {displayedAccuracy}')
 
 model.eval()
 with torch.no_grad():
@@ -77,7 +77,7 @@ with torch.no_grad():
         test_correct = test_correct + (predicted == labels).sum().item()
 
         test_accuracy = test_correct/test_total
-        print("Test Accuracy is {test_accuracy}")
+        print(f"Test Accuracy is {test_accuracy}")
 
 #Save model
 torch.save(model.state_dict(), "emotion_classifier_model_cnn.pth" )

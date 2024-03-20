@@ -11,7 +11,7 @@ class CNN(nn.Module):
             #First layer
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
             nn.LeakyReLU(inplace=True),
-            
+            nn.MaxPool2d(kernel_size = 2, stride = 2),
             
 
             #Second layer
