@@ -41,6 +41,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 #Initiazlie 10 epochs for training
 num_epochs = 10
+displayedLossTraining = 0
 
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
@@ -55,32 +56,44 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        total = labels.size(0)
-        _, predicted = torch.max(outputs.data, 1)
-        correct = (predicted == labels).sum().item()
+    #Show training loss
+    displayedLossTraining += loss.item()
 
-        displayedEpoch =  (epoch+1)/(num_epochs)
-        displayedStep = (i+1)/(len(train_loader))
-        displayedLoss = loss.item()
-        displayedAccuracy = (correct/total)*100
+    print(f'Training: Loss {displayedLossTraining}')
 
-        print(f'Epoch {displayedEpoch}, Step {displayedStep}, Loss {displayedLoss}, Accuracy {displayedAccuracy}')
-
-model.eval()
-with torch.no_grad():
-    test_correct = 0
-    test_total = 0
-    for images, labels in test_loader:
+    #Initalize variable for validation
+    oldLossValidation = 0
+    totalValidation = 0
+    correctValidation = 0
+    displayedLossValidation = 0
+    for i, (images, labels) in enumerate(validation_loader):
+        model.eval()
         outputs = model(images)
-        _, predicted = torch.max(outputs.data, 1)
-        test_total = test_total + labels.size(0)
-        test_correct = test_correct + (predicted == labels).sum().item()
+        loss = criterion(outputs, labels)
+        totalValidation = totalValidation + labels.size(0)
+        _, predicted = torch.max(outputs.data, 1)    
+        correctValidation = correctValidation + (predicted == labels).sum().item()
 
-        test_accuracy = test_correct/test_total
-        print(f"Test Accuracy is {test_accuracy}")
+    #Display metrics on validation set
+    displayedEpoch =  (epoch+1)/(num_epochs)
+    displayedStep = (i+1)/(len(validation_loader))
+    displayedLossValidation = displayedLossValidation + loss.item()
+    displayedAccuracy = (correctValidation/totalValidation)*100
 
-#Save model
-torch.save(model.state_dict(), "emotion_classifier_model_cnn.pth" )
-        
+   
+    #Save model when there is validation loss and that there is a loss in validation instead of an increase at each epoch
+    if (displayedLossValidation < oldLossValidation):
+        #Save model
+        torch.save(model.state_dict(), "emotion_classifier_model_cnn.pth" )
+    elif (oldLossValidation == 0):
+        #Save the first epoch as the best model
+        torch.save(model.state_dict(), "emotion_classifier_model_cnn.pth" )
+    
+    oldLossValidation= displayedLossValidation
+
+    print(f'Validation: Epoch {displayedEpoch}, Step {displayedStep}, Loss {displayedLossValidation}, Accuracy {displayedAccuracy}')
+
+
+ 
 
 
