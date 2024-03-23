@@ -1,8 +1,5 @@
-from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
-import torchvision.datasets
 
 class CNN(nn.Module):
     def __init__(self):
