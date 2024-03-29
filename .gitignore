@@ -3,3 +3,4 @@ dataset/Happy/processed
 dataset/Neutral/processed
 dataset/Suprised/processed
 dataset/Focused/processed
+__pycache__
