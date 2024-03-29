@@ -29,7 +29,11 @@ train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
 validation_loader = DataLoader(validation_set, batch_size=32, shuffle=False)
 test_loader = DataLoader(test_set, batch_size=32, shuffle=False)
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# print(f"Training on device: {device}")
+
 model = CNNVariant2()
+model.to(device)
 
 # Define the loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -44,6 +48,7 @@ for epoch in range(num_epochs):
     running_loss = 0.0
 
     for i, (images, labels) in enumerate(train_loader):
+        images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
         outputs = model(images)
         loss = criterion(outputs, labels)
@@ -59,8 +64,14 @@ for epoch in range(num_epochs):
     correct_validation = 0
     total_validation = 0
 
+    early_stopping_patience = 3
+    epochs_since_improvement = 0
+    min_loss_decrease = 0.001  # Minimum decrease in loss to qualify as an improvement
+    best_model_state = None
+
     with torch.no_grad():
         for images, labels in validation_loader:
+            images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)
             validation_loss += loss.item()
@@ -69,19 +80,37 @@ for epoch in range(num_epochs):
 
     avg_validation_loss = validation_loss / len(validation_loader)
     validation_accuracy = 100 * correct_validation / len(validation_set)
-    print(f'Validation: Epoch {epoch + 1}/{num_epochs}, Loss: {avg_validation_loss:.6f}, Accuracy: {validation_accuracy:.2f}%')
+    print(
+        f'Validation: Epoch {epoch + 1}/{num_epochs}, Loss: {avg_validation_loss:.6f}, Accuracy: {validation_accuracy:.2f}%')
 
-    if avg_validation_loss < best_validation_loss:
+    # Check for improvement
+    if best_validation_loss - avg_validation_loss > min_loss_decrease:
         best_validation_loss = avg_validation_loss
-        torch.save(model.state_dict(), "emotion_classifier_model_cnn_variant2.pth")
+        epochs_since_improvement = 0
+        best_model_state = model.state_dict()
+    else:
+        epochs_since_improvement += 1
+
+    # Early stopping condition check
+    if epochs_since_improvement >= early_stopping_patience:
+        print("Early stopping triggered. Stopping training...")
+        break
+
+# Save the best model outside the training loop
+if best_model_state is not None:
+    torch.save(best_model_state, "emotion_classifier_model_cnn_variant2.pth")
+    print("Best model saved.")
+else:
+    print("No improvement over initial model. Best model not saved.")
 
 # Test the model
-model.eval()
 test_correct = 0
 test_total = 0
 
+model.eval()
 with torch.no_grad():
     for images, labels in test_loader:
+        images, labels = images.to(device), labels.to(device)
         outputs = model(images)
         _, predicted = torch.max(outputs.data, 1)
         test_total += labels.size(0)
