@@ -4,7 +4,7 @@ from torchvision.datasets import ImageFolder
 from torch.utils.data import DataLoader, random_split
 import pandas as pd
 import os
-from cnn_model3 import CNNVariant3
+from cnn_model2 import CNNVariant2
 
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
@@ -26,8 +26,8 @@ train_dataset, validation_dataset, test_dataset = random_split(full_dataset, [tr
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 # Load the trained model
-model = CNNVariant3()
-model.load_state_dict(torch.load("emotion_classifier_model_cnn_variant3.pth"))
+model = CNNVariant2()
+model.load_state_dict(torch.load("emotion_classifier_model_cnn_variant2.pth"))
 model.eval()
 
 # Define the device to use
@@ -59,7 +59,7 @@ all_predicted_labels = [idx_to_class[pred] for pred in all_predicted_labels]
 
 correct = sum(p == l for p, l in zip(all_predicted_labels, all_true_labels))
 accuracy = correct / len(all_true_labels)
-print(f'Accuracy of the model on the complete dataset: {accuracy:.2f}')
+print(f'Accuracy of the model on the test dataset: {accuracy:.2f}')
 
 # Saving the results to a CSV file
 df = pd.DataFrame({
