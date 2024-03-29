@@ -1,68 +1,152 @@
-from sklearn.metrics import confusion_matrix, accuracy_score, precision_recall_fscore_support
+import torch
 import numpy as np
 import pandas as pd
+from torch.utils.data import DataLoader
+from torchvision.datasets import ImageFolder
+import torchvision.transforms as transforms
+from sklearn.metrics import (
+    confusion_matrix,
+    accuracy_score,
+    precision_recall_fscore_support,
+)
 
-# Dummy predictions and true labels for 3 models (Main, Variant 1, Variant 2)
-np.random.seed(42)  # For reproducibility
+# Import your model definitions
+from cnn_model import CNN
+from cnn_model2 import CNNVariant2
+from cnn_model3 import CNNVariant3
+from cnn_model4 import CNNVariant4
 
-# Assuming a 3-class classification problem (classes 0, 1, 2)
-n_samples = 100  # Number of test samples
-true_labels = np.random.randint(0, 3, size=n_samples)
 
-# Dummy predictions by the models
-predictions_main = np.random.randint(0, 3, size=n_samples)
-predictions_variant1 = np.random.randint(0, 3, size=n_samples)
-predictions_variant2 = np.random.randint(0, 3, size=n_samples)
-
-# Function to calculate metrics
 def calculate_metrics(y_true, y_pred):
-    precision, recall, fscore, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
-    micro_precision, micro_recall, micro_fscore, _ = precision_recall_fscore_support(y_true, y_pred, average='micro')
+    precision, recall, fscore, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="macro"
+    )
+    micro_precision, micro_recall, micro_fscore, _ = precision_recall_fscore_support(
+        y_true, y_pred, average="micro"
+    )
     accuracy = accuracy_score(y_true, y_pred)
-    return precision, recall, fscore, micro_precision, micro_recall, micro_fscore, accuracy
-
-# Calculating metrics for each model
-metrics_main = calculate_metrics(true_labels, predictions_main)
-metrics_variant1 = calculate_metrics(true_labels, predictions_variant1)
-metrics_variant2 = calculate_metrics(true_labels, predictions_variant2)
-
-cm = confusion_matrix(true_labels, predictions_main)
-cm_df = pd.DataFrame(cm, 
-                     index=['True Class 0', 'True Class 1', 'True Class 2'],
-                     columns=['Predicted Class 0', 'Predicted Class 1', 'Predicted Class 2'])
+    return (
+        precision,
+        recall,
+        fscore,
+        micro_precision,
+        micro_recall,
+        micro_fscore,
+        accuracy,
+    )
 
 
+def evaluate_model(model, test_loader, device):
+    model.eval()
+    test_predictions = []
+    test_true_labels = []
 
-print("\nConfusion Matrix:")
-print(cm_df)
+    with torch.no_grad():
+        for images, labels in test_loader:
+            # Move data to the same device as the model
+            images, labels = images.to(device), labels.to(device)
+            outputs = model(images)
+            _, predicted = torch.max(outputs.data, 1)
+            # Move predictions and labels back to CPU for metrics calculation
+            test_predictions.extend(predicted.cpu().numpy())
+            test_true_labels.extend(labels.cpu().numpy())
+
+    return np.array(test_true_labels), np.array(test_predictions)
 
 
-# Define the metric names as multi-level columns
-metrics_columns = pd.MultiIndex.from_tuples([
-    ('Macro', 'P'),
-    ('Macro', 'R'),
-    ('Macro', 'F'),
-    ('Micro', 'P'),
-    ('Micro', 'R'),
-    ('Micro', 'F'),
-    ('Accuracy', '')  # Accuracy does not have a sub-level
-], names=['', ''])
+def main():
+    # Load and transform the dataset
+    transform = transforms.Compose(
+        [
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+            transforms.Resize((256, 256)),
+        ]
+    )
+    image_path = "dataset"  # Adjust the path to your dataset
+    dataset = ImageFolder(root=image_path, transform=transform)
+    test_loader = DataLoader(
+        dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True
+    )
 
-# Define the index with model names
-model_index = ['Main Model', 'Variant 1', 'Variant 2']
+    # Initialize models and set the device
+    device = (
+        torch.device("mps")
+        if torch.backends.mps.is_available()
+        else torch.device("cpu")
+    )
+    print(f"Using device: {device}")
 
-# Create an empty DataFrame with the specified multi-level columns and model index
-formatted_metrics_table = pd.DataFrame('-', index=model_index, columns=metrics_columns)
+    models = {
+        "CNN": CNN(),
+        "CNN Variant 2": CNNVariant2(),
+        "CNN Variant 3": CNNVariant3(),
+        "CNN Variant 4": CNNVariant4(),
+    }
 
-# Now populate the empty DataFrame with actual metrics
-for model, metrics in zip(model_index, [metrics_main, metrics_variant1, metrics_variant2]):
-    formatted_metrics_table.loc[model, ('Macro', 'P')] = metrics[0]
-    formatted_metrics_table.loc[model, ('Macro', 'R')] = metrics[1]
-    formatted_metrics_table.loc[model, ('Macro', 'F')] = metrics[2]
-    formatted_metrics_table.loc[model, ('Micro', 'P')] = metrics[3]
-    formatted_metrics_table.loc[model, ('Micro', 'R')] = metrics[4]
-    formatted_metrics_table.loc[model, ('Micro', 'F')] = metrics[5]
-    formatted_metrics_table.loc[model, ('Accuracy', '')] = metrics[6]
+    model_paths = {
+        "CNN": "emotion_classifier_model_cnn.pth",
+        "CNN Variant 2": "emotion_classifier_model_cnn_variant2.pth",
+        "CNN Variant 3": "emotion_classifier_model_cnn_variant3.pth",
+        "CNN Variant 4": "emotion_classifier_model_cnn_variant4.pth",
+    }
 
-print("\nFormatted Metrics Summary:")
-print(formatted_metrics_table)
+    all_metrics = {
+        "Model": [],
+        "Macro P": [],
+        "Macro R": [],
+        "Macro F": [],
+        "Micro P": [],
+        "Micro R": [],
+        "Micro F": [],
+        "Accuracy": [],
+    }
+
+    for name, model in models.items():
+        model.to(device)
+        model.load_state_dict(torch.load(model_paths[name], map_location=device))
+
+        y_true, y_pred = evaluate_model(model, test_loader, device)
+
+        (
+            precision,
+            recall,
+            fscore,
+            micro_precision,
+            micro_recall,
+            micro_fscore,
+            accuracy,
+        ) = calculate_metrics(y_true, y_pred)
+
+        # Add the metrics to the dictionary
+        all_metrics["Model"].append(name)
+        all_metrics["Macro P"].append(precision)
+        all_metrics["Macro R"].append(recall)
+        all_metrics["Macro F"].append(fscore)
+        all_metrics["Micro P"].append(micro_precision)
+        all_metrics["Micro R"].append(micro_recall)
+        all_metrics["Micro F"].append(micro_fscore)
+        all_metrics["Accuracy"].append(accuracy)
+
+        cm = confusion_matrix(y_true, y_pred)
+        cm_df = pd.DataFrame(
+            cm,
+            index=[f"True Class {i}" for i in range(len(cm))],
+            columns=[f"Predicted Class {i}" for i in range(len(cm[0]))],
+        )
+        print("\nConfusion Matrix:")
+        print(cm_df)
+        print("\n")
+
+    # Create a DataFrame with the collected metrics
+    metrics_df = pd.DataFrame(all_metrics)
+
+    # Set the model names as the index
+    metrics_df.set_index("Model", inplace=True)
+
+    # Print the DataFrame
+    print(metrics_df)
+
+
+if __name__ == "__main__":
+    main()
