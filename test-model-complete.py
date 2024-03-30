@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader, random_split
 import pandas as pd
 import os
 from cnn_model2 import CNNVariant2
+from cnn_model3 import CNNVariant3
+from cnn_model import CNN
 
 transform = transforms.Compose([
     transforms.Resize((256, 256)),
@@ -20,14 +22,17 @@ full_dataset = ImageFolder(root=image_path, transform=transform)
 train_size = int(0.7 * len(full_dataset))
 validation_size = int(0.15 * len(full_dataset))
 test_size = len(full_dataset) - train_size - validation_size
+
+
+torch.manual_seed(42)
 train_dataset, validation_dataset, test_dataset = random_split(full_dataset, [train_size, validation_size, test_size])
 
 # Initialize the data loader for the test set
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
 # Load the trained model
-model = CNNVariant2()
-model.load_state_dict(torch.load("emotion_classifier_model_cnn_variant2.pth"))
+model = CNNVariant3()
+model.load_state_dict(torch.load("emotion_classifier_model_cnn_variant3.pth"))
 model.eval()
 
 # Define the device to use
