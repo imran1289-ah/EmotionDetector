@@ -29,7 +29,10 @@ train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
 validation_loader = DataLoader(validation_set, batch_size=32, shuffle=False)
 test_loader = DataLoader(test_set, batch_size=32, shuffle=False)
 
-model = CNNVariant3()
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# print(f"Training on device: {device}")
+
+model = CNNVariant3().to(device)
 
 # Define the loss function and optimizer
 criterion = nn.CrossEntropyLoss()
@@ -38,12 +41,15 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 # Set up the training process
 num_epochs = 10
 best_validation_loss = float('inf')
+early_stopping_patience = 3
+early_stopping_counter = 0
 
 for epoch in range(num_epochs):
     model.train()
     running_loss = 0.0
 
-    for i, (images, labels) in enumerate(train_loader):
+    for images, labels in train_loader:
+        images, labels = images.to(device), labels.to(device)
         optimizer.zero_grad()
         outputs = model(images)
         loss = criterion(outputs, labels)
@@ -52,7 +58,7 @@ for epoch in range(num_epochs):
         running_loss += loss.item()
 
     avg_training_loss = running_loss / len(train_loader)
-    print(f'Training: Epoch {epoch + 1}/{num_epochs}, Loss: {avg_training_loss:.6f}')
+    print(f'Training: Epoch {epoch+1}/{num_epochs}, Loss: {avg_training_loss:.6f}')
 
     model.eval()
     validation_loss = 0.0
@@ -61,25 +67,28 @@ for epoch in range(num_epochs):
 
     with torch.no_grad():
         for images, labels in validation_loader:
+            images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)
             validation_loss += loss.item()
             _, predicted = torch.max(outputs.data, 1)
             correct_validation += (predicted == labels).sum().item()
-            total_validation += labels.size(0)  # Correctly update total_validation
+            total_validation += labels.size(0)
 
     avg_validation_loss = validation_loss / len(validation_loader)
-    if total_validation > 0:  # Ensure we don't divide by zero
-        validation_accuracy = 100 * correct_validation / total_validation
-        print(
-            f'Validation: Epoch {epoch + 1}/{num_epochs}, Loss: {avg_validation_loss:.6f}, Accuracy: {validation_accuracy:.2f}%')
-    else:
-        print(
-            f'Validation: Epoch {epoch + 1}/{num_epochs}, Loss: {avg_validation_loss:.6f}, Accuracy: N/A - No validation data')
+    validation_accuracy = 100 * correct_validation / total_validation
+    print(f'Validation: Epoch {epoch+1}/{num_epochs}, Loss: {avg_validation_loss:.6f}, Accuracy: {validation_accuracy:.2f}%')
 
+    # Early Stopping
     if avg_validation_loss < best_validation_loss:
         best_validation_loss = avg_validation_loss
+        early_stopping_counter = 0
         torch.save(model.state_dict(), "emotion_classifier_model_cnn_variant3.pth")
+    else:
+        early_stopping_counter += 1
+        if early_stopping_counter >= early_stopping_patience:
+            print("Early stopping triggered.")
+            break
 
 # Test the model
 test_correct = 0
@@ -88,10 +97,11 @@ test_total = 0
 model.eval()
 with torch.no_grad():
     for images, labels in test_loader:
+        images, labels = images.to(device), labels.to(device)
         outputs = model(images)
         _, predicted = torch.max(outputs.data, 1)
         test_total += labels.size(0)
         test_correct += (predicted == labels).sum().item()
 
-test_accuracy = 100 * test_correct / test_total
-print(f'Test Accuracy: {test_accuracy:.2f}%')
+test_accuracy = test_correct / test_total
+print(f'Test Accuracy: {test_accuracy:.2f}')
