@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import pandas as pd
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import ImageFolder
 import torchvision.transforms as transforms
 from sklearn.metrics import (
@@ -14,7 +14,6 @@ from sklearn.metrics import (
 from cnn_model import CNN
 from cnn_model2 import CNNVariant2
 from cnn_model3 import CNNVariant3
-from cnn_model4 import CNNVariant4
 
 
 def calculate_metrics(y_true, y_pred):
@@ -63,10 +62,26 @@ def main():
             transforms.Resize((256, 256)),
         ]
     )
-    image_path = "dataset"  # Adjust the path to your dataset
+
+    
+    image_path = "dataset"  
     dataset = ImageFolder(root=image_path, transform=transform)
+
+    # Calculate sizes for split
+    total_size = len(dataset)
+    train_size = int(0.7 * total_size)
+    validation_size = int(0.15 * total_size)
+    test_size = total_size - (train_size + validation_size)
+
+    # Set random state and split dataset
+    torch.manual_seed(42)
+    train_set, validation_set, test_set = random_split(
+        dataset, [train_size, validation_size, test_size]
+    )
+
+    # Create a DataLoader for the testing set
     test_loader = DataLoader(
-        dataset, batch_size=32, shuffle=False, num_workers=2, pin_memory=True
+        test_set, batch_size=32, shuffle=False, num_workers=2, pin_memory=True
     )
 
     # Initialize models and set the device
@@ -81,14 +96,12 @@ def main():
         "CNN": CNN(),
         "CNN Variant 2": CNNVariant2(),
         "CNN Variant 3": CNNVariant3(),
-        "CNN Variant 4": CNNVariant4(),
     }
 
     model_paths = {
         "CNN": "emotion_classifier_model_cnn.pth",
         "CNN Variant 2": "emotion_classifier_model_cnn_variant2.pth",
         "CNN Variant 3": "emotion_classifier_model_cnn_variant3.pth",
-        "CNN Variant 4": "emotion_classifier_model_cnn_variant4.pth",
     }
 
     all_metrics = {

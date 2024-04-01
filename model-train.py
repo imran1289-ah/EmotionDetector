@@ -99,13 +99,6 @@ for epoch in range(num_epochs):
     print(f'Validation: Epoch {epoch+1}/{num_epochs}, Step {i+1}/{len(validation_loader)}, Loss {displayedLossValidation}, Accuracy {displayedAccuracy}')
 
 
-# Function to calculate metrics
-def calculate_metrics(y_true, y_pred):
-    precision, recall, fscore, _ = precision_recall_fscore_support(y_true, y_pred, average='macro')
-    micro_precision, micro_recall, micro_fscore, _ = precision_recall_fscore_support(y_true, y_pred, average='micro')
-    accuracy = accuracy_score(y_true, y_pred)
-    return precision, recall, fscore, micro_precision, micro_recall, micro_fscore, accuracy
-
 # After training and validation, during the testing phase:
 model.eval()
 test_predictions = []
@@ -122,16 +115,6 @@ with torch.no_grad():
 test_predictions = np.array(test_predictions)
 test_true_labels = np.array(test_true_labels)
 
-# Calculating metrics
-precision, recall, fscore, micro_precision, micro_recall, micro_fscore, accuracy = calculate_metrics(test_true_labels, test_predictions)
 
-# Printing metrics
-print(f"Precision: {precision}, Recall: {recall}, F-score: {fscore}, Micro Precision: {micro_precision}, Micro Recall: {micro_recall}, Micro F-score: {micro_fscore}, Accuracy: {accuracy}")
-
-# Calculating and printing the confusion matrix
-cm = confusion_matrix(test_true_labels, test_predictions)
-cm_df = pd.DataFrame(cm, index=[f'True Class {i}' for i in range(len(cm))], columns=[f'Predicted Class {i}' for i in range(len(cm[0]))])
-print("\nConfusion Matrix:")
-print(cm_df)
 
 
