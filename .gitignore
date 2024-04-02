@@ -4,3 +4,4 @@ dataset/Neutral/processed
 dataset/Suprised/processed
 dataset/Focused/processed
 __pycache__
+venv
