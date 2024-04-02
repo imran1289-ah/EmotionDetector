@@ -63,9 +63,9 @@ def main():
         ]
     )
 
-    
-    image_path = "dataset"  
+    image_path = "dataset"
     dataset = ImageFolder(root=image_path, transform=transform)
+    class_names = dataset.classes
 
     # Calculate sizes for split
     total_size = len(dataset)
@@ -144,8 +144,8 @@ def main():
         cm = confusion_matrix(y_true, y_pred)
         cm_df = pd.DataFrame(
             cm,
-            index=[f"True Class {i}" for i in range(len(cm))],
-            columns=[f"Predicted Class {i}" for i in range(len(cm[0]))],
+            index=[f"True {class_name}" for class_name in class_names],
+            columns=[f"Predicted {class_name}" for class_name in class_names],
         )
         print("\nConfusion Matrix:")
         print(cm_df)
