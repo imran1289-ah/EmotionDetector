@@ -142,6 +142,9 @@ def main():
         "Macro Precision": [],
         "Macro Recall": [],
         "Macro F-Score": [],
+        "Micro Precision": [],
+        "Micro Recall": [],
+        "Micro F-Score": [],
     }
 
     for name, model_class in models.items():
@@ -157,6 +160,10 @@ def main():
             all_metrics["Macro Precision"].append(fold_metrics["Precision"])
             all_metrics["Macro Recall"].append(fold_metrics["Recall"])
             all_metrics["Macro F-Score"].append(fold_metrics["F-Score"])
+            all_metrics["Micro Precision"].append(fold_metrics["Micro Precision"])
+            all_metrics["Micro Recall"].append(fold_metrics["Micro Recall"])
+            all_metrics["Micro F-Score"].append(fold_metrics["Micro F-Score"])
+            
 
     # Convert collected metrics into a DataFrame for easier analysis and export
     metrics_df = pd.DataFrame(all_metrics)
