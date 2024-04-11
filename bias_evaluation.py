@@ -10,7 +10,7 @@ from sklearn.metrics import (
     precision_recall_fscore_support,
 )
 
-# Import your model definitions
+# Import model definitions
 from cnn_model import CNN
 from cnn_model2 import CNNVariant2
 from cnn_model3 import CNNVariant3
@@ -50,6 +50,44 @@ def evaluate_model(model, test_loader, device):
     return np.array(test_true_labels), np.array(test_predictions)
 
 
+def load_gender_data(transform):
+    # Paths to gender-segmented data
+    image_path_male = "bias_dataset/gender/male"
+    image_path_female = "bias_dataset/gender/female"
+    image_path_other = "bias_dataset/gender/other"
+
+    # Load datasets
+    dataset_male = ImageFolder(root=image_path_male, transform=transform)
+    dataset_female = ImageFolder(root=image_path_female, transform=transform)
+    dataset_other = ImageFolder(root=image_path_other, transform=transform)
+
+    # Split datasets
+    total_size_male = len(dataset_male)
+    total_size_female = len(dataset_female)
+    total_size_other = len(dataset_other)
+
+    # 70-15-15 train-validation-test split as done previously
+    train_size_male = int(0.7 * total_size_male)
+    test_size_male = total_size_male - train_size_male
+
+    train_size_female = int(0.7 * total_size_female)
+    test_size_female = total_size_female - train_size_female
+
+    train_size_other = int(0.7 * total_size_other)
+    test_size_other = total_size_other - train_size_other
+
+    _, test_set_male = random_split(dataset_male, [train_size_male, test_size_male])
+    _, test_set_female = random_split(dataset_female, [train_size_female, test_size_female])
+    _, test_set_other = random_split(dataset_other, [train_size_other, test_size_other])
+
+    # Create DataLoader for test sets
+    test_loader_male = DataLoader(test_set_male, batch_size=32, shuffle=False)
+    test_loader_female = DataLoader(test_set_female, batch_size=32, shuffle=False)
+    test_loader_other = DataLoader(test_set_other, batch_size=32, shuffle=False)
+
+    return test_loader_male, test_loader_female, test_loader_other
+
+
 def main():
     # Load and transform the dataset
     transform = transforms.Compose(
@@ -60,12 +98,11 @@ def main():
         ]
     )
 
-    
-    #Initialize dataset for each age group
+    # Initialize dataset for each age group
     image_path_middle = "bias_dataset/age/middle-aged"
     image_path_senior = "bias_dataset/age/senior"
     image_path_young = "bias_dataset/age/young"
-      
+
     dataset_middle = ImageFolder(root=image_path_middle, transform=transform)
     dataset_senior = ImageFolder(root=image_path_senior, transform=transform)
     dataset_young = ImageFolder(root=image_path_young, transform=transform)
@@ -85,8 +122,6 @@ def main():
     train_size_young = int(0.7 * total_size_young)
     validation_size_young = int(0.15 * total_size_young)
     test_size_young = total_size_young - (train_size_young + validation_size_young)
-
-
 
     # Set random state and split dataset for each group
     torch.manual_seed(42)
@@ -115,7 +150,7 @@ def main():
         test_set_young, batch_size=32, shuffle=False, num_workers=2, pin_memory=True
     )
 
-    testLoaders = {"young":test_loader_young, "middle-aged":test_loader_middle, "senior":test_loader_senior}
+    testLoaders = {"young": test_loader_young, "middle-aged": test_loader_middle, "senior": test_loader_senior}
 
     # Initialize models and set the device
     device = (
@@ -125,20 +160,46 @@ def main():
     )
     print(f"Using device: {device}")
 
-    
     all_metrics = {
-        "Attribute":[],
-        "Group":[],
+        "Attribute": [],
+        "Group": [],
         "Accuracy": [],
         "Precision": [],
         "Recall": [],
         "F1-Score": [],
     }
 
-    
+    # Load gender data
+    test_loader_male, test_loader_female, test_loader_other = load_gender_data(transform)
+
+    testLoaders.update({
+        "male": test_loader_male,
+        "female": test_loader_female,
+        "other": test_loader_other
+    })
+
+    # Add new metrics for each gender group to the dictionary
+    for gender_group, loader in [('male', test_loader_male), ('female', test_loader_female),
+                                 ('other', test_loader_other)]:
+        model = CNN()
+        model.to(device)
+        model.load_state_dict(torch.load("emotion_classifier_model_cnn.pth", map_location=device))
+
+        y_true, y_pred = evaluate_model(model, loader, device)
+        accuracy, precision, recall, fscore = calculate_metrics(y_true, y_pred)
+
+        all_metrics["Attribute"].append("gender")
+        all_metrics["Group"].append(gender_group)
+        all_metrics["Accuracy"].append(accuracy)
+        all_metrics["Precision"].append(precision)
+        all_metrics["Recall"].append(recall)
+        all_metrics["F1-Score"].append(fscore)
+
+    metrics_df = pd.DataFrame(all_metrics)
+    print(metrics_df)
+    print(" ")
 
     for age_group in testLoaders:
-
         model = CNN()
         model.to(device)
         model.load_state_dict(torch.load("emotion_classifier_model_cnn.pth", map_location=device))
@@ -160,12 +221,13 @@ def main():
         all_metrics["Recall"].append(recall)
         all_metrics["F1-Score"].append(fscore)
 
-
     # Create a DataFrame with the collected metrics
     metrics_df = pd.DataFrame(all_metrics)
 
-    #Get the average for each metrics and assign as new row
-    metrics_df.loc[len(metrics_df)] = {'Attribute':"", 'Group':"average", 'Accuracy':metrics_df["Accuracy"].mean(), 'Precision':metrics_df["Precision"].mean(), "Recall":metrics_df["Recall"].mean(), "F1-Score":metrics_df["F1-Score"].mean()}
+    # Get the average for each metrics and assign as new row
+    metrics_df.loc[len(metrics_df)] = {'Attribute': "", 'Group': "average", 'Accuracy': metrics_df["Accuracy"].mean(),
+                                       'Precision': metrics_df["Precision"].mean(),
+                                       "Recall": metrics_df["Recall"].mean(), "F1-Score": metrics_df["F1-Score"].mean()}
 
     # Print the DataFrame
     print(metrics_df)
