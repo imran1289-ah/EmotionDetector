@@ -196,8 +196,8 @@ def main():
         all_metrics["F1-Score"].append(fscore)
 
     metrics_df = pd.DataFrame(all_metrics)
-    print(metrics_df)
-    print(" ")
+    # print(metrics_df)
+    # print(" ")
 
     for age_group in testLoaders:
         model = CNN()
