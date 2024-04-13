@@ -150,7 +150,7 @@ def main():
         test_set_young, batch_size=32, shuffle=False, num_workers=2, pin_memory=True
     )
 
-    testLoaders = {"young": test_loader_young, "middle-aged": test_loader_middle, "senior": test_loader_senior}
+    testLoaders = {}
 
     # Initialize models and set the device
     device = (
@@ -195,10 +195,26 @@ def main():
         all_metrics["Recall"].append(recall)
         all_metrics["F1-Score"].append(fscore)
 
-    metrics_df = pd.DataFrame(all_metrics)
-    # print(metrics_df)
-    # print(" ")
+    metrics_df1 = pd.DataFrame(all_metrics)
+    temp_metrics_df1 = metrics_df1
 
+    # Get the average for each metrics and assign as new row
+    metrics_df1.loc[len(metrics_df1)] = {'Attribute': "", 'Group': "average", 'Accuracy': metrics_df1["Accuracy"].mean(),
+                                       'Precision': metrics_df1["Precision"].mean(),
+                                       "Recall": metrics_df1["Recall"].mean(), "F1-Score": metrics_df1["F1-Score"].mean()}
+
+
+    testLoaders = {"young": test_loader_young, "middle-aged": test_loader_middle, "senior": test_loader_senior}
+
+    all_metrics = {
+        "Attribute": [],
+        "Group": [],
+        "Accuracy": [],
+        "Precision": [],
+        "Recall": [],
+        "F1-Score": [],
+    }
+    
     for age_group in testLoaders:
         model = CNN()
         model.to(device)
@@ -222,14 +238,22 @@ def main():
         all_metrics["F1-Score"].append(fscore)
 
     # Create a DataFrame with the collected metrics
-    metrics_df = pd.DataFrame(all_metrics)
+    metrics_df2 = pd.DataFrame(all_metrics)
+    temp_metrics_df2 = metrics_df2
 
     # Get the average for each metrics and assign as new row
-    metrics_df.loc[len(metrics_df)] = {'Attribute': "", 'Group': "average", 'Accuracy': metrics_df["Accuracy"].mean(),
-                                       'Precision': metrics_df["Precision"].mean(),
-                                       "Recall": metrics_df["Recall"].mean(), "F1-Score": metrics_df["F1-Score"].mean()}
+    metrics_df2.loc[len(metrics_df2)] = {'Attribute': "", 'Group': "average", 'Accuracy': metrics_df2["Accuracy"].mean(),
+                                       'Precision': metrics_df2["Precision"].mean(),
+                                       "Recall": metrics_df2["Recall"].mean(), "F1-Score": metrics_df2["F1-Score"].mean()}
 
     # Print the DataFrame
+    metrics_df = pd.concat([metrics_df2, metrics_df1])
+    temp_metrics_df = pd.concat([temp_metrics_df2, temp_metrics_df1])
+
+    metrics_df.loc[len(metrics_df)] = {'Attribute': "Overall average", 'Group': "", 'Accuracy': temp_metrics_df["Accuracy"].mean(),
+                                       'Precision':temp_metrics_df["Precision"].mean(),
+                                       "Recall": temp_metrics_df["Recall"].mean(), "F1-Score": temp_metrics_df["F1-Score"].mean()}
+
     print(metrics_df)
 
 
