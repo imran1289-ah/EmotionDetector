@@ -23,7 +23,7 @@ dataset = ImageFolder(root=image_path, transform=transform)
 #Splitting dataset to corresponding ratio
 train_set = int(0.7 *len(dataset))
 validation_set = int(0.15*len(dataset))
-test_set = int(0.15*len(dataset))
+test_set = len(dataset) - train_set - validation_set
 
 #Set random state and split dataset
 torch.manual_seed(42)
@@ -90,10 +90,10 @@ for epoch in range(num_epochs):
     if (displayedLossValidation < BestLossValidation):
         #Save model
         BestLossValidation = displayedLossValidation
-        torch.save(model.state_dict(), "emotion_classifier_model_cnn.pth" )
+        torch.save(model.state_dict(), "emotion_classifier_model_cnn_bias.pth" )
     elif (BestLossValidation == 0):
         #Save the first epoch as the best model initially
-        torch.save(model.state_dict(), "emotion_classifier_model_cnn.pth" )
+        torch.save(model.state_dict(), "emotion_classifier_model_cnn_bias.pth" )
     
     #Display the metrics
     print(f'Validation: Epoch {epoch+1}/{num_epochs}, Step {i+1}/{len(validation_loader)}, Loss {displayedLossValidation}, Accuracy {displayedAccuracy}')
