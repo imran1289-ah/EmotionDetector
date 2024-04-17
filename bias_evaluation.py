@@ -183,7 +183,7 @@ def main():
                                  ('other', test_loader_other)]:
         model = CNN()
         model.to(device)
-        model.load_state_dict(torch.load("emotion_classifier_model_cnn.pth", map_location=device))
+        model.load_state_dict(torch.load("emotion_classifier_model_cnn_bias.pth", map_location=device))
 
         y_true, y_pred = evaluate_model(model, loader, device)
         accuracy, precision, recall, fscore = calculate_metrics(y_true, y_pred)
@@ -218,7 +218,7 @@ def main():
     for age_group in testLoaders:
         model = CNN()
         model.to(device)
-        model.load_state_dict(torch.load("emotion_classifier_model_cnn.pth", map_location=device))
+        model.load_state_dict(torch.load("emotion_classifier_model_cnn_bias.pth", map_location=device))
 
         y_true, y_pred = evaluate_model(model, testLoaders[age_group], device)
 
