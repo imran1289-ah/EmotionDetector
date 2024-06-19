@@ -1,2 +1,2 @@
-# COMP472
-Facial Recognition Project Winter 2024
+# Facial Mood Recognition Model
+Facial Mood Detector using CNN model
