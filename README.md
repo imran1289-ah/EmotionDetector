@@ -1,2 +1,2 @@
-# Facial Mood Recognition Model
-Facial Mood Detector using CNN model
+# Emotion/Mood Recognition Model
+Emotion/Mood Detector using CNN model
